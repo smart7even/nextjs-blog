@@ -1,11 +1,27 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import axios from 'axios';
+import RecentFilesGrid from '../components/recent_files_grid';
 
 export default function UploadPage() {
     const [files, setFiles] = useState([]);
     const [password, setPassword] = useState('');
     const [successMessage, setSuccessMessage] = useState('');
     const [errorMessage, setErrorMessage] = useState('');
+    const [recentFiles, setRecentFiles] = useState([]);
+
+    // Fetch recent files
+    useEffect(() => {
+        const fetchRecentFiles = async () => {
+            try {
+                const response = await axios.get('/api/record/recents');
+                setRecentFiles(response.data);
+            } catch (error) {
+                console.error('Error fetching recent files:', error);
+            }
+        };
+
+        fetchRecentFiles();
+    }, []);
 
     const onDrop = useCallback((event) => {
         event.preventDefault();
@@ -61,8 +77,9 @@ export default function UploadPage() {
         <div
             style={{
                 display: 'flex',
-                alignItems: 'center',
                 justifyContent: 'center',
+                flexDirection: 'column',
+                alignItems: 'center',
                 height: '100vh',
             }}
         >
@@ -78,6 +95,7 @@ export default function UploadPage() {
                     borderRadius: '10px',
                     backgroundColor: '#f9f9f9',
                     padding: '20px',
+                    height: '50vh',
                 }}
                 onDragOver={(event) => event.preventDefault()}
                 onDrop={onDrop}
@@ -168,6 +186,18 @@ export default function UploadPage() {
                 {errorMessage && (
                     <div style={{ color: 'red', marginTop: '10px' }}>{errorMessage}</div>
                 )}
+
+            </div>
+            <div
+                style={{
+                    width: '90%',
+                    margin: '20px auto',
+                    maxHeight: '300px',
+                    overflow: 'auto',
+                    height: '50vh',
+                }}
+            >
+                <RecentFilesGrid />
             </div>
         </div>
     );
