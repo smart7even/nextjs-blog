@@ -63,7 +63,7 @@ export default function Home({ allPostsData }) {
             width={48}
             src="/icons/linkedin.svg"
             className={`${utilStyles.telegramIcon}`}
-            alt="Github"
+            alt="Linkedin"
           />
         </a>
       </div>
