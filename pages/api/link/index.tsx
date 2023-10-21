@@ -67,9 +67,13 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
             res.status(400).send('resource id is empty')
         }
 
-        await prisma.resource.delete({
+        // update resource set user id nullable
+        await prisma.resource.update({
             where: {
                 id: resourceId
+            },
+            data: {
+                userId: null
             }
         })
 

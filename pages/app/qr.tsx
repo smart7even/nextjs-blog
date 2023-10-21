@@ -25,17 +25,12 @@ export async function getServerSideProps({ req, res }) {
     }
 }
 
-export default function AuthPage(props) {
+export default function QrPage(props) {
     const [codeId, setCodeId] = useState<string>('')
     const [resources, setResources] = useState<Resource[]>([])
     const { data: session } = useSession()
 
     async function onPageLoad() {
-        // if (session == null) {
-        //     console.log('session is null')
-        //     return
-        // }
-
         let response = await fetch('/api/code', {
             method: "POST",
         })
