@@ -65,7 +65,7 @@ export default function AuthPage(props) {
 
             console.log(link)
 
-            if (!link.startsWith('http://')) {
+            if (!link.startsWith('http://') && !link.startsWith('https://')) {
                 link = 'http://' + link
             }
 
