@@ -7,76 +7,84 @@ import Avatar from '../../components/avatar';
 
 import { useSession, signIn, signOut } from "next-auth/react"
 
-import { Button, Input } from 'antd'
+import { Button, Input, QRCode } from 'antd'
 
 import { useEffect, useState } from 'react';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from 'pages/api/auth/[...nextauth]';
 import { DeleteOutlined } from '@ant-design/icons';
 import LinksList from 'components/links';
+import { set } from 'date-fns';
 
 export async function getServerSideProps({ req, res }) {
     return {
         props: {
-            session: await getServerSession(req, res, authOptions)
+            session: await getServerSession(req, res, authOptions),
+            url: process.env.NEXTAUTH_URL ?? 'http://localhost:3000'
         }
     }
 }
 
 export default function AuthPage(props) {
+    const [codeId, setCodeId] = useState<string>('')
     const [resources, setResources] = useState<Resource[]>([])
     const { data: session } = useSession()
 
-    const [newLinkContent, setNewLinkContent] = useState(''); // Declare a state variable...
-
     async function onPageLoad() {
-        if (session == null) {
-            console.log('session is null')
-            return
-        }
+        // if (session == null) {
+        //     console.log('session is null')
+        //     return
+        // }
 
-        let response = await fetch('/api/link', {
-            method: "GET",
+        let response = await fetch('/api/code', {
+            method: "POST",
         })
         let json = await response.json()
 
         console.log(json)
+
+        setCodeId(json.id)
+    }
+
+    async function onPageUpdate(codeId: string) {
+        if (!codeId || codeId == '') {
+            console.log('code id is null')
+            return
+        }
+
+        let response = await fetch(`/api/code/${codeId}`)
+
+        let json = await response.json()
+
+        console.log(json)
+
         setResources((prev) => json.resources)
+
+        if (json.resources.length > 0) {
+            let link = json.resources[0].resource.content
+
+            console.log(link)
+
+            if (!link.startsWith('http://')) {
+                link = 'http://' + link
+            }
+
+            location.replace(link);
+        }
     }
 
     useEffect(() => {
         onPageLoad()
     }, []);
 
-    async function onPostSend() {
-        console.log("Sending request")
-        await fetch('/api/link', {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-                "content": newLinkContent
-            })
-        })
+    useEffect(() => {
+        const interval = setInterval(() => {
+            console.log("Refreshing")
+            onPageUpdate(codeId)
+        }, 1000)
 
-        await onPageLoad()
-    }
-
-    async function onDelete(resourceId: string) {
-        console.log("Sending request")
-        await fetch('/api/link', {
-            method: "DELETE",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-                "id": resourceId
-            })
-        })
-
-        await onPageLoad()
-    }
+        return () => clearInterval(interval)
+    }, [codeId])
 
     return (
         <div className='m-2'>
@@ -88,8 +96,15 @@ export default function AuthPage(props) {
                 </div>
             </div>
 
-            <Input value={newLinkContent} placeholder="Enter link" onPressEnter={onPostSend} onChange={e => setNewLinkContent(e.target.value)} />
-            <LinksList resources={resources} onDelete={onDelete} />
+            {
+                codeId && <QRCode
+                    size={256}
+                    style={{ height: "auto", maxWidth: "100%", width: "100%" }}
+                    value={`${props.url}/app/qr/${codeId}`}
+                // viewBox={`0 0 256 256`}
+                />
+            }
+
         </div>
     )
 } 

@@ -1,19 +1,12 @@
-import Layout from '../../components/layout';
-import Head from 'next/head';
-import Date from '../../components/date';
-import utilStyles from '../../styles/utils.module.css';
-import LoginBtn from '../../components/login-btn.jsx'
-import Avatar from '../../components/avatar';
-
-import { useSession, signIn, signOut } from "next-auth/react"
-
-import { Button, Input } from 'antd'
-
-import { useEffect, useState } from 'react';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from 'pages/api/auth/[...nextauth]';
-import { DeleteOutlined } from '@ant-design/icons';
-import LinksList from 'components/links';
+import { Input } from 'antd'
+import Avatar from 'components/avatar'
+import LinksList from 'components/links'
+import LoginBtn from 'components/login-btn'
+import { getServerSession } from 'next-auth/next'
+import { useSession } from 'next-auth/react'
+import { useRouter } from 'next/router'
+import { authOptions } from 'pages/api/auth/[...nextauth]'
+import { useEffect, useState } from 'react'
 
 export async function getServerSideProps({ req, res }) {
     return {
@@ -23,17 +16,29 @@ export async function getServerSideProps({ req, res }) {
     }
 }
 
-export default function AuthPage(props) {
-    const [resources, setResources] = useState<Resource[]>([])
+export default function CodeIdPage() {
+    const router = useRouter()
     const { data: session } = useSession()
+    const [resources, setResources] = useState<Resource[]>([])
+    const [linkedResources, setLinkedResources] = useState<Resource[]>([])
 
     const [newLinkContent, setNewLinkContent] = useState(''); // Declare a state variable...
+
+    const [selectedItems, setSelectedItems] = useState<string[]>([])
 
     async function onPageLoad() {
         if (session == null) {
             console.log('session is null')
             return
         }
+
+        let linkedResponse = await fetch(`/api/code/link/${router.query.id}`, {
+            method: "GET",
+        })
+        let linkedJson = await linkedResponse.json()
+
+        console.log(linkedJson)
+        setLinkedResources((prev) => linkedJson.resources)
 
         let response = await fetch('/api/link', {
             method: "GET",
@@ -78,6 +83,23 @@ export default function AuthPage(props) {
         await onPageLoad()
     }
 
+    async function onSelect(resourceId: string) {
+        console.log("Selecting code")
+
+        await fetch('/api/code/link', {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                "id": resourceId,
+                "codeId": router.query.id
+            })
+        })
+
+        setSelectedItems((prev) => [...prev, resourceId])
+    }
+
     return (
         <div className='m-2'>
             <div className='flex items-center justify-between mb-2'>
@@ -88,8 +110,12 @@ export default function AuthPage(props) {
                 </div>
             </div>
 
+            <p>Code id: {router.query.id}</p>
+
             <Input value={newLinkContent} placeholder="Enter link" onPressEnter={onPostSend} onChange={e => setNewLinkContent(e.target.value)} />
-            <LinksList resources={resources} onDelete={onDelete} />
+            <LinksList resources={linkedResources} onDelete={onDelete} onSelect={onSelect} selectedItems={selectedItems} />
+            <LinksList resources={resources} onDelete={onDelete} onSelect={onSelect} selectedItems={selectedItems} />
         </div>
     )
-} 
+
+}
