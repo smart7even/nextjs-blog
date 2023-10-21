@@ -50,7 +50,7 @@ export default function AuthPage(props) {
 
     async function onPostSend() {
         console.log("Sending request")
-        await fetch('/api/link', {
+        const response = await fetch('/api/link', {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
@@ -60,7 +60,13 @@ export default function AuthPage(props) {
             })
         })
 
+        if (response.status != 200) {
+            console.log("Error")
+            return
+        }
+
         await onPageLoad()
+        setNewLinkContent('')
     }
 
     async function onDelete(resourceId: string) {
@@ -88,8 +94,11 @@ export default function AuthPage(props) {
                 </div>
             </div>
 
-            <Input value={newLinkContent} placeholder="Enter link" onPressEnter={onPostSend} onChange={e => setNewLinkContent(e.target.value)} />
-            <LinksList resources={resources} onDelete={onDelete} />
+            <div className='flex'>
+                <Input className='mr-2' value={newLinkContent} placeholder="Enter link" onPressEnter={onPostSend} onChange={e => setNewLinkContent(e.target.value)} />
+                <Button onClick={onPostSend}>Post</Button>
+            </div>
+            <LinksList resources={resources} onDelete={onDelete} title='My Links' />
         </div>
     )
 } 

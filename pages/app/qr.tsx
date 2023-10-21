@@ -1,20 +1,12 @@
-import Layout from '../../components/layout';
-import Head from 'next/head';
-import Date from '../../components/date';
-import utilStyles from '../../styles/utils.module.css';
 import LoginBtn from '../../components/login-btn.jsx'
 import Avatar from '../../components/avatar';
 
-import { useSession, signIn, signOut } from "next-auth/react"
-
-import { Button, Input, QRCode } from 'antd'
+import { useSession } from "next-auth/react"
 
 import { useEffect, useState } from 'react';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from 'pages/api/auth/[...nextauth]';
-import { DeleteOutlined } from '@ant-design/icons';
-import LinksList from 'components/links';
-import { set } from 'date-fns';
+import { useRouter } from 'next/navigation';
 
 export async function getServerSideProps({ req, res }) {
     return {
@@ -26,9 +18,8 @@ export async function getServerSideProps({ req, res }) {
 }
 
 export default function QrPage(props) {
-    const [codeId, setCodeId] = useState<string>('')
-    const [resources, setResources] = useState<Resource[]>([])
     const { data: session } = useSession()
+    const router = useRouter()
 
     async function onPageLoad() {
         let response = await fetch('/api/code', {
@@ -38,48 +29,16 @@ export default function QrPage(props) {
 
         console.log(json)
 
-        setCodeId(json.id)
-    }
+        let codeId = json.id
 
-    async function onPageUpdate(codeId: string) {
-        if (!codeId || codeId == '') {
-            console.log('code id is null')
-            return
-        }
-
-        let response = await fetch(`/api/code/${codeId}`)
-
-        let json = await response.json()
-
-        console.log(json)
-
-        setResources((prev) => json.resources)
-
-        if (json.resources.length > 0) {
-            let link = json.resources[0].resource.content
-
-            console.log(link)
-
-            if (!link.startsWith('http://') && !link.startsWith('https://')) {
-                link = 'http://' + link
-            }
-
-            location.replace(link);
+        if (codeId != null) {
+            router.push(`/app/qr/${codeId}`);
         }
     }
 
     useEffect(() => {
         onPageLoad()
     }, []);
-
-    useEffect(() => {
-        const interval = setInterval(() => {
-            console.log("Refreshing")
-            onPageUpdate(codeId)
-        }, 1000)
-
-        return () => clearInterval(interval)
-    }, [codeId])
 
     return (
         <div className='m-2'>
@@ -90,16 +49,6 @@ export default function QrPage(props) {
                     {session?.user.name && <div className='ml-2 text-sm'>{session.user.name}</div>}
                 </div>
             </div>
-
-            {
-                codeId && <QRCode
-                    size={256}
-                    style={{ height: "auto", maxWidth: "100%", width: "100%" }}
-                    value={`${props.url}/app/qr/${codeId}`}
-                // viewBox={`0 0 256 256`}
-                />
-            }
-
         </div>
     )
 } 

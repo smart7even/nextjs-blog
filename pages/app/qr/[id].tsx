@@ -1,44 +1,52 @@
-import { Input } from 'antd'
-import Avatar from 'components/avatar'
-import LinksList from 'components/links'
-import LoginBtn from 'components/login-btn'
-import { getServerSession } from 'next-auth/next'
-import { useSession } from 'next-auth/react'
-import { useRouter } from 'next/router'
-import { authOptions } from 'pages/api/auth/[...nextauth]'
-import { useEffect, useState } from 'react'
+import { useSession, signIn, signOut } from "next-auth/react"
+
+import { Button, Input, QRCode } from 'antd'
+
+import { useEffect, useState } from 'react';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from 'pages/api/auth/[...nextauth]';
+import LinksList from 'components/links';
+import router, { useRouter } from 'next/router';
+import LoginBtn from "components/login-btn";
+import Avatar from "components/avatar";
+import { ro } from "date-fns/locale";
 
 export async function getServerSideProps({ req, res }) {
     return {
         props: {
-            session: await getServerSession(req, res, authOptions)
+            session: await getServerSession(req, res, authOptions),
+            url: process.env.NEXTAUTH_URL ?? 'http://localhost:3000'
         }
     }
 }
 
-export default function CodeIdPage() {
-    const router = useRouter()
-    const { data: session } = useSession()
+export default function QrPage(props) {
+    const [codeId, setCodeId] = useState<string>('')
     const [resources, setResources] = useState<Resource[]>([])
-    const [linkedResources, setLinkedResources] = useState<Resource[]>([])
-
-    const [newLinkContent, setNewLinkContent] = useState(''); // Declare a state variable...
+    const [myResources, setMyResources] = useState<Resource[]>([])
+    const { data: session } = useSession()
+    const router = useRouter()
 
     const [selectedItems, setSelectedItems] = useState<string[]>([])
 
     async function onPageLoad() {
+        let response = await fetch(`/api/code/${router.query.id}`, {
+            method: "GET",
+        })
+        let json = await response.json()
+
+        console.log(json)
+
+        setCodeId(json.id)
+
+        await getMyResources();
+    }
+
+    async function getMyResources() {
         if (session == null) {
             console.log('session is null')
             return
         }
-
-        let linkedResponse = await fetch(`/api/code/link/${router.query.id}`, {
-            method: "GET",
-        })
-        let linkedJson = await linkedResponse.json()
-
-        console.log(linkedJson)
-        setLinkedResources((prev) => linkedJson.resources)
 
         let response = await fetch('/api/link', {
             method: "GET",
@@ -46,26 +54,34 @@ export default function CodeIdPage() {
         let json = await response.json()
 
         console.log(json)
-        setResources((prev) => json.resources)
+        setMyResources((prev) => json.resources)
     }
 
-    useEffect(() => {
-        onPageLoad()
-    }, []);
+    async function onPageUpdate(codeId: string) {
+        if (!codeId || codeId == '') {
+            console.log('code id is null')
+            return
+        }
 
-    async function onPostSend() {
-        console.log("Sending request")
-        await fetch('/api/link', {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-                "content": newLinkContent
-            })
-        })
+        let response = await fetch(`/api/code/${codeId}`)
 
-        await onPageLoad()
+        let json = await response.json()
+
+        console.log(json)
+
+        setResources((prev) => json.resources.map((r) => r.resource))
+
+        // if (json.resources.length > 0) {
+        //     let link = json.resources[0].resource.content
+
+        //     console.log(link)
+
+        //     if (!link.startsWith('http://') && !link.startsWith('https://')) {
+        //         link = 'http://' + link
+        //     }
+
+        //     location.replace(link);
+        // }
     }
 
     async function onDelete(resourceId: string) {
@@ -100,6 +116,21 @@ export default function CodeIdPage() {
         setSelectedItems((prev) => [...prev, resourceId])
     }
 
+    useEffect(() => {
+        onPageLoad()
+    }, []);
+
+    useEffect(() => {
+        const interval = setInterval(() => {
+            console.log("Refreshing")
+            onPageUpdate(codeId)
+        }, 1000)
+
+        return () => clearInterval(interval)
+    }, [codeId])
+
+    let link = `${props.url}/app/qr/${codeId}`
+
     return (
         <div className='m-2'>
             <div className='flex items-center justify-between mb-2'>
@@ -110,12 +141,22 @@ export default function CodeIdPage() {
                 </div>
             </div>
 
-            <p>Code id: {router.query.id}</p>
+            {
+                codeId && <div>
+                    <QRCode
+                        size={256}
+                        style={{ height: "auto", maxWidth: "100%", width: "100%" }}
+                        value={link}
+                    // viewBox={`0 0 256 256`}
+                    />
+                    <div className='mt-2'>
+                        <a href={link} target="_blank">{link}</a>
+                    </div>
+                    <LinksList title='Attached Links' resources={resources} onDelete={null} onSelect={null} />
+                    {session && <LinksList title='My Links' resources={myResources} onDelete={onDelete} onSelect={onSelect} selectedItems={selectedItems} />}
+                </div>
+            }
 
-            <Input value={newLinkContent} placeholder="Enter link" onPressEnter={onPostSend} onChange={e => setNewLinkContent(e.target.value)} />
-            <LinksList resources={linkedResources} onDelete={onDelete} onSelect={onSelect} selectedItems={selectedItems} />
-            <LinksList resources={resources} onDelete={onDelete} onSelect={onSelect} selectedItems={selectedItems} />
         </div>
     )
-
-}
+} 
