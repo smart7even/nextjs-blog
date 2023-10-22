@@ -7,19 +7,9 @@ import prisma from "lib/prisma";
 export default async (req: NextApiRequest, res: NextApiResponse) => {
     const session: Session = await getServerSession(req, res, authOptions)
 
-    if (!session) {
-        res.status(401).send('authorize to make this request')
-        return
-    }
-
     console.log(session?.user.id)
 
     let userId: string = session?.user.id
-
-    if (!userId) {
-        res.status(401).send('user id is undefined')
-        return
-    }
 
     if (req.method == 'POST') {
         let body = req.body

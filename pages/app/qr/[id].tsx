@@ -26,6 +26,7 @@ export default function QrPage(props) {
     const [myResources, setMyResources] = useState<Resource[]>([])
     const { data: session } = useSession()
     const router = useRouter()
+    const [newLinkContent, setNewLinkContent] = useState(''); // Declare a state variable...
 
     const [selectedItems, setSelectedItems] = useState<string[]>([])
 
@@ -116,6 +117,68 @@ export default function QrPage(props) {
         setSelectedItems((prev) => [...prev, resourceId])
     }
 
+    async function onPostSend() {
+        if (!session) {
+            await onUnauthorizedPostSend()
+            return
+        }
+
+        console.log("Sending request")
+        const response = await fetch('/api/link', {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                "content": newLinkContent
+            })
+        })
+
+        if (response.status != 200) {
+            console.log("Error")
+            return
+        }
+
+        await onPageLoad()
+        setNewLinkContent('')
+    }
+
+    async function onUnauthorizedPostSend() {
+        const response = await fetch('/api/link', {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                "content": newLinkContent
+            })
+        })
+
+        if (response.status != 200) {
+            console.log("Error")
+            return
+        }
+
+        const json = await response.json()
+
+        const resourceId = json.id
+
+        // link is created, now we need to attach it to the code
+        const attachLinkResponse = await fetch('/api/code/link', {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                "id": resourceId,
+                "codeId": router.query.id
+            })
+        })
+
+        await onPageLoad()
+        setNewLinkContent('')
+    }
+
     useEffect(() => {
         onPageLoad()
     }, []);
@@ -149,8 +212,12 @@ export default function QrPage(props) {
                         value={link}
                     // viewBox={`0 0 256 256`}
                     />
-                    <div className='mt-2'>
+                    <div className='mt-2 break-all'>
                         <a href={link} target="_blank">{link}</a>
+                    </div>
+                    <div className='flex mt-2'>
+                        <Input className='mr-2' value={newLinkContent} placeholder="Enter link" onPressEnter={onPostSend} onChange={e => setNewLinkContent(e.target.value)} />
+                        <Button onClick={onPostSend}>Post</Button>
                     </div>
                     <LinksList title='Attached Links' resources={resources} onDelete={null} onSelect={null} />
                     {session && <LinksList title='My Links' resources={myResources} onDelete={onDelete} onSelect={onSelect} selectedItems={selectedItems} />}

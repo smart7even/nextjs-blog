@@ -1,18 +1,13 @@
-import Layout from '../../components/layout';
-import Head from 'next/head';
-import Date from '../../components/date';
-import utilStyles from '../../styles/utils.module.css';
 import LoginBtn from '../../components/login-btn.jsx'
 import Avatar from '../../components/avatar';
 
-import { useSession, signIn, signOut } from "next-auth/react"
+import { useSession } from "next-auth/react"
 
 import { Button, Input } from 'antd'
 
 import { useEffect, useState } from 'react';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from 'pages/api/auth/[...nextauth]';
-import { DeleteOutlined } from '@ant-design/icons';
 import LinksList from 'components/links';
 
 export async function getServerSideProps({ req, res }) {
@@ -50,6 +45,15 @@ export default function AuthPage(props) {
 
     async function onPostSend() {
         console.log("Sending request")
+
+        if (!session) {
+            return
+        }
+
+        await onAuthorizedPostSend();
+    }
+
+    async function onAuthorizedPostSend() {
         const response = await fetch('/api/link', {
             method: "POST",
             headers: {

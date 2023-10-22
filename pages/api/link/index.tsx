@@ -7,19 +7,9 @@ import { prisma } from "lib/prisma"
 export default async (req: NextApiRequest, res: NextApiResponse) => {
     const session: Session = await getServerSession(req, res, authOptions)
 
-    if (!session) {
-        res.status(401).send('authorize to make this request')
-        return
-    }
+    console.log(session?.user?.id)
 
-    console.log(session.user.id)
-
-    let userId: string = session.user.id
-
-    if (!userId) {
-        res.status(401).send('user id is undefined')
-        return
-    }
+    let userId: string = session?.user?.id
 
     if (req.method == 'GET') {
         let resources = await prisma.resource.findMany({
@@ -47,7 +37,7 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
         //     }
         // })
 
-        await prisma.resource.create({
+        const createdResource = await prisma.resource.create({
             data: {
                 userId: userId,
                 type: 'link',
@@ -55,7 +45,7 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
             }
         })
 
-        res.status(200).send(null)
+        res.status(200).send(createdResource)
 
         return
     } else if (req.method == 'DELETE') {
