@@ -3,12 +3,15 @@ import Avatar from '../../components/avatar';
 
 import { useSession } from "next-auth/react"
 
-import { Button, Input } from 'antd'
+import { Button, Divider, Dropdown, Input, MenuProps, Space } from 'antd'
 
 import { useEffect, useState } from 'react';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from 'pages/api/auth/[...nextauth]';
 import LinksList from 'components/links';
+import { SmileOutlined } from '@ant-design/icons';
+import React from 'react';
+import useToken from 'antd/lib/theme/useToken.js';
 
 export async function getServerSideProps({ req, res }) {
     return {
@@ -19,6 +22,54 @@ export async function getServerSideProps({ req, res }) {
 }
 
 export default function AuthPage(props) {
+    const items: MenuProps['items'] = [
+        {
+            key: '1',
+            label: (
+                <a target="_blank" rel="noopener noreferrer" href="/">
+                    Main page
+                </a>
+            ),
+        },
+        // {
+        //     key: '2',
+        //     label: (
+        //         <a target="_blank" rel="noopener noreferrer" href="https://www.aliyun.com">
+        //             2nd menu item (disabled)
+        //         </a>
+        //     ),
+        //     icon: <SmileOutlined />,
+        //     disabled: true,
+        // },
+        // {
+        //     key: '3',
+        //     label: (
+        //         <a target="_blank" rel="noopener noreferrer" href="https://www.luohanacademy.com">
+        //             3rd menu item (disabled)
+        //         </a>
+        //     ),
+        //     disabled: true,
+        // },
+        // {
+        //     key: '4',
+        //     danger: true,
+        //     label: 'a danger item',
+        // },
+    ];
+
+    const [theme, token] = useToken();
+
+
+    const contentStyle: React.CSSProperties = {
+        backgroundColor: token.colorBgElevated,
+        borderRadius: token.borderRadiusLG,
+        boxShadow: token.boxShadowSecondary,
+    };
+
+    const menuStyle: React.CSSProperties = {
+        boxShadow: 'none',
+    };
+
     const [resources, setResources] = useState<Resource[]>([])
     const { data: session } = useSession()
 
@@ -91,11 +142,24 @@ export default function AuthPage(props) {
     return (
         <div className='m-2'>
             <div className='flex items-center justify-between mb-2'>
-                <LoginBtn />
-                <div className='flex items-center justify-end p-1 hover:cursor-pointer hover:bg-ablue hover:text-white rounded'>
-                    {session?.user.image && <Avatar image={session.user.image} size={32} />}
-                    {session?.user.name && <div className='ml-2 text-sm'>{session.user.name}</div>}
-                </div>
+                <div></div>
+                {session ? <Dropdown menu={{ items }}
+                    dropdownRender={(menu) => (
+                        <div style={contentStyle}>
+                            {React.cloneElement(menu as React.ReactElement, { style: menuStyle })}
+                            <Divider style={{ margin: 0 }} />
+                            <Space style={{ padding: 8 }}>
+                                <LoginBtn></LoginBtn>
+                            </Space>
+                        </div>
+                    )}
+                >
+                    <div className='flex items-center justify-end p-1 hover:cursor-pointer hover:bg-ablue hover:text-white rounded'>
+                        {session?.user.image && <Avatar image={session.user.image} size={32} />}
+                        {session?.user.name && <div className='ml-2 text-sm'>{session.user.name}</div>}
+                    </div>
+                </Dropdown> : <LoginBtn />}
+
             </div>
 
             <div className='flex'>

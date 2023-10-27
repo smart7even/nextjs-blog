@@ -5,6 +5,8 @@ import mainStyles from '../styles/main.module.css';
 import { getSortedPostsData } from '../lib/posts';
 import Link from 'next/link';
 import Date from '../components/date';
+import { Button } from 'antd';
+import { useRouter } from 'next/router';
 
 export async function getStaticProps() {
   const allPostsData = getSortedPostsData();
@@ -16,6 +18,8 @@ export async function getStaticProps() {
 }
 
 export default function Home({ allPostsData }) {
+  let router = useRouter();
+
   return (
     <Layout home>
       <Head>
@@ -84,6 +88,8 @@ export default function Home({ allPostsData }) {
           ))}
         </ul>
       </section>
+
+      <Button onClick={() => router.push("/app")}>Go to App</Button>
     </Layout>
   );
 }
